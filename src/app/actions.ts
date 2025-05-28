@@ -13,9 +13,23 @@ export async function fetchUniProtSequences(
   limit: number
 ): Promise<FetchResult> {
   const baseUrl = 'https://rest.uniprot.org/uniprotkb/search';
-  const query = `${encodeURIComponent(organism)} AND reviewed:true`;
+  
+  let organismQueryPart: string;
+  // Check if the organism input is a number (likely a taxon ID) or a string (likely an organism name)
+  if (/^\d+$/.test(organism)) {
+    organismQueryPart = `organism_id:${organism}`;
+  } else {
+    // For names, UniProt expects them to be quoted if they contain spaces.
+    // Encoding the organism string and then ensuring it's quoted if it's a name.
+    organismQueryPart = `organism_name:"${decodeURIComponent(encodeURIComponent(organism))}"`;
+  }
+  
+  const query = `${organismQueryPart} AND reviewed:true`;
   const fields = 'accession,protein_name,organism_name,sequence';
-  const apiUrl = `${baseUrl}?query=${query}&fields=${fields}&format=json&size=${limit}`;
+  // We need to encode the query part itself, especially characters like ":" and quotes if not handled by encodeURIComponent on the parts.
+  // However, UniProt API expects field searches like organism_name:"Homo sapiens" directly.
+  // Let's ensure the overall query string is properly encoded for the URL.
+  const apiUrl = `${baseUrl}?query=${encodeURIComponent(query)}&fields=${fields}&format=json&size=${limit}`;
 
   try {
     const response = await fetch(apiUrl, {
