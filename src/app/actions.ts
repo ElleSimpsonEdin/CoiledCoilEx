@@ -16,17 +16,15 @@ export async function fetchUniProtSequences(
   const baseUrl = 'https://rest.uniprot.org/uniprotkb/search';
   
   let organismQueryPart: string;
-  // Check if the organism input is a number (likely a taxon ID) or a string (likely an organism name)
   if (/^\d+$/.test(organism)) {
     organismQueryPart = `organism_id:${organism}`;
   } else {
-    // For names, UniProt expects them to be quoted if they contain spaces.
     organismQueryPart = `organism_name:"${decodeURIComponent(encodeURIComponent(organism))}"`;
   }
   
-  // Added 'AND ft_coiled:*' to filter for entries with coiled coil regions
   const query = `${organismQueryPart} AND reviewed:true AND ft_coiled:*`;
-  const fields = 'accession,protein_name,organism_name,sequence';
+  // Added 'ft_coiled' to fields to get feature information
+  const fields = 'accession,protein_name,organism_name,sequence,ft_coiled'; 
   const apiUrl = `${baseUrl}?query=${encodeURIComponent(query)}&fields=${fields}&format=json&size=${limit}`;
 
   try {
@@ -55,4 +53,3 @@ export async function fetchUniProtSequences(
     return { apiUrl, error: 'An unknown error occurred while fetching data.' };
   }
 }
-

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, type FC } from 'react';
@@ -8,20 +9,43 @@ import ApiInfoDisplay from '@/components/coiled-coil/api-info-display';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, ListChecks, Info } from 'lucide-react';
-import type { ProcessedUniProtEntry, RawUniProtEntry, SequenceFormValues } from '@/types';
+import type { ProcessedUniProtEntry, RawUniProtEntry, SequenceFormValues, UniProtFeature } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 
 const processUniProtData = (rawData: RawUniProtEntry[]): ProcessedUniProtEntry[] => {
-  return rawData.map((entry) => ({
-    id: entry.primaryAccession,
-    entry: entry.primaryAccession,
-    entryName:
-      entry.proteinDescription?.recommendedName?.fullName?.value ||
-      entry.proteinDescription?.submissionNames?.[0]?.fullName?.value ||
-      'N/A',
-    organism: entry.organism?.scientificName || 'N/A',
-    sequence: entry.sequence?.value || 'N/A',
-  }));
+  return rawData.map((entry) => {
+    let coiledCoilSequence = 'N/A - Coiled coil data unavailable';
+    const fullSequence = entry.sequence?.value;
+
+    if (fullSequence && entry.features && entry.features.length > 0) {
+      const coiledCoilFeature = entry.features.find(
+        (feature: UniProtFeature) => feature.type === 'Coiled coil'
+      );
+
+      if (coiledCoilFeature && coiledCoilFeature.location?.start?.value && coiledCoilFeature.location?.end?.value) {
+        const start = coiledCoilFeature.location.start.value;
+        const end = coiledCoilFeature.location.end.value;
+        // UniProt sequences are 1-indexed, substring is 0-indexed and end is exclusive
+        coiledCoilSequence = fullSequence.substring(start - 1, end);
+      } else if (coiledCoilFeature) {
+        coiledCoilSequence = 'N/A - Coiled coil location invalid';
+      }
+    } else if (!fullSequence) {
+        coiledCoilSequence = 'N/A - Full sequence unavailable';
+    }
+
+
+    return {
+      id: entry.primaryAccession,
+      entry: entry.primaryAccession,
+      entryName:
+        entry.proteinDescription?.recommendedName?.fullName?.value ||
+        entry.proteinDescription?.submissionNames?.[0]?.fullName?.value ||
+        'N/A',
+      organism: entry.organism?.scientificName || 'N/A',
+      sequence: coiledCoilSequence,
+    };
+  });
 };
 
 const HomePage: FC = () => {
@@ -156,7 +180,7 @@ const HomePage: FC = () => {
       {!isLoading && !error && sequences.length === 0 && apiUrl && ( // Show if API call made but no results
          <Card className="shadow-md">
            <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">No sequences found for the specified criteria.</p>
+            <p className="text-center text-muted-foreground">No sequences found for the specified criteria, or no coiled coil regions in found sequences.</p>
            </CardContent>
          </Card>
       )}

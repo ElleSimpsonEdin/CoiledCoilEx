@@ -1,7 +1,25 @@
+
 import { z } from 'zod';
 
 export interface UniProtAPIResponse {
   results: RawUniProtEntry[];
+}
+
+interface FeatureLocationModifier {
+  value: number;
+  modifier?: string; 
+}
+
+interface FeatureLocation {
+  start: FeatureLocationModifier;
+  end: FeatureLocationModifier;
+}
+
+export interface UniProtFeature {
+  type: string; // e.g., "Coiled coil"
+  location: FeatureLocation;
+  description?: string;
+  evidences?: any[]; // Keeping it simple for now
 }
 
 export interface RawUniProtEntry {
@@ -28,6 +46,7 @@ export interface RawUniProtEntry {
     molWeight: number;
     crc64: string;
   };
+  features?: UniProtFeature[]; // To store feature information like ft_coiled
 }
 
 export interface ProcessedUniProtEntry {
@@ -35,7 +54,7 @@ export interface ProcessedUniProtEntry {
   entry: string;
   entryName: string;
   organism: string;
-  sequence: string;
+  sequence: string; // This will now store the coiled coil region sequence
 }
 
 export const sequenceFormSchema = z.object({
